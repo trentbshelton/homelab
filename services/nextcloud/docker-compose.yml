@@ -1,0 +1,49 @@
+services:
+
+  nextcloud-db:
+    image: mariadb:11.8
+    container_name: nextcloud-db
+    restart: unless-stopped
+    command: >-
+      --transaction-isolation=READ-COMMITTED
+      --log-bin=binlog --binlog-format=ROW
+      --innodb-file-per-table=1 --skip-innodb-read-only-compressed
+    environment:
+      MARIADB_ROOT_PASSWORD: ${NC_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: nextcloud
+      MARIADB_USER: nextcloud
+      MARIADB_PASSWORD: ${NC_DB_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - /opt/nextcloud-db:/var/lib/mysql
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${NC_REDIS_PASSWORD}
+
+  nextcloud:
+    image: nextcloud:31-apache
+    container_name: nextcloud
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    environment:
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NC_DB_PASSWORD}
+      REDIS_HOST: nextcloud-redis
+      REDIS_HOST_PASSWORD: ${NC_REDIS_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.home.${DOMAIN}
+      OVERWRITEPROTOCOL: https
+      OVERWRITECLIURL: https://cloud.home.${DOMAIN}
+      TRUSTED_PROXIES: 172.16.0.0/12
+      TZ: ${TZ}
+    volumes:
+      - /opt/nextcloud/html:/var/www/html
+      - /mnt/nas/data/nextcloud-data:/var/www/html/data
+    ports:
+      - "${TS_IP}:8084:80"

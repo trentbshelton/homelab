@@ -1,0 +1,38 @@
+services:
+  baikal:
+    image: ckulka/baikal:nginx
+    container_name: baikal
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    ports:
+      - "127.0.0.1:8091:80"
+    volumes:
+      - baikal-config:/var/www/baikal/config
+      - baikal-data:/var/www/baikal/Specific
+      - ./baikal-default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  agendav:
+    image: ghcr.io/nagimov/agendav-docker:latest
+    container_name: agendav
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    environment:
+      - AGENDAV_SERVER_NAME=docker.<tailnet>.ts.net
+      - AGENDAV_TITLE=Trents Calendar
+      - AGENDAV_FOOTER=
+      - AGENDAV_CALDAV_SERVER=http://baikal/dav.php
+      - AGENDAV_CALDAV_PUBLIC_URL=https://docker.<tailnet>.ts.net:8091
+      - AGENDAV_TIMEZONE=America/New_York
+      - AGENDAV_LANG=en
+      - AGENDAV_LOG_DIR=/tmp/
+      - AGENDAV_WEEKSTART=0
+    ports:
+      - "127.0.0.1:8092:8080"
+    depends_on:
+      - baikal
+
+volumes:
+  baikal-config:
+  baikal-data:

@@ -1,0 +1,15 @@
+services:
+
+  vaultwarden:
+    image: vaultwarden/server:1.37.1-alpine
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      DOMAIN: https://vault.home.${DOMAIN}
+      SIGNUPS_ALLOWED: "false"
+      SIGNUPS_VERIFY: "false"
+      TZ: ${TZ}
+    volumes:
+      - /opt/homelab/appdata/vaultwarden:/data
+    ports:
+      - "${TS_IP}:8081:80"

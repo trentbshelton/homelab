@@ -1,0 +1,28 @@
+services:
+  dashboard:
+    build: ./src
+    container_name: selfhosted-dashboard
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    ports:
+      - "${TS_IP}:8080:3000"
+    env_file:
+      - .env
+    volumes:
+      - /mnt/nas/data:/mnt/nas/data:ro
+      - /mnt/nas/backup:/mnt/nas/backup:ro
+      - /srv:/host-root:ro
+
+  dashboard-friends:
+    build: ./src
+    container_name: dashboard-friends
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    ports:
+      - "${TS_IP}:8090:3000"
+    environment:
+      - PUBLIC_MODE=true
+      - SERVICES_FILE=services.friends.yml
+      - PORT=3000
