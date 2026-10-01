@@ -43,6 +43,7 @@ All apps run in Docker on the `docker` VM, one folder and one compose file per s
 | Navidrome | Music streaming |
 | Jellyfin | Movies and TV (runs on the homelab box for the iGPU) |
 | Baikal + AgenDAV | Self-hosted calendar that syncs to my phone (CalDAV) |
+| Wallos | Tracks subscriptions and sends renewal reminders |
 | Uptime Kuma | Monitors every service and sends alerts |
 | ntfy | Push notifications to my phone |
 | Portainer | Docker management UI |
@@ -55,6 +56,11 @@ All apps run in Docker on the `docker` VM, one folder and one compose file per s
 - [Storage and backups](docs/storage-and-backups.md)
 - [Monitoring and alerts](docs/monitoring.md)
 - [Power protection (UPS)](docs/power.md)
+
+## Config
+
+- [services/](services/): the compose file for each service
+- [scripts/backup-appdata-docker-vm.sh](scripts/backup-appdata-docker-vm.sh): the nightly backup script
 
 ## Write-ups
 

@@ -1,0 +1,22 @@
+services:
+  wallos:
+    image: bellamy/wallos:latest
+    container_name: wallos
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    ports:
+      - "${TS_IP}:8087:80"
+    environment:
+      TZ: America/Chicago
+      # allow notifications to the self-hosted ntfy (internal IPs are blocked by default)
+      SSRF_ALLOWLIST: "${TS_IP}:8082"
+    volumes:
+      - ./db:/var/www/html/db
+      - ./logos:/var/www/html/images/uploads/logos
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

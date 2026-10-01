@@ -1,0 +1,10 @@
+services:
+
+  network-map:
+    build: ./src
+    container_name: network-map
+    restart: unless-stopped
+    ports:
+      - "${TS_IP}:8085:3000"
+    env_file:
+      - .env
