@@ -1,6 +1,6 @@
 # Power protection (UPS)
 
-A CyberPower CP1500 UPS powers both servers: the PowerEdge and the homelab box. Its USB cable goes to the PowerEdge, and the PowerEdge shares the battery status with homelab over the network.
+A CyberPower CP1500 UPS powers both servers and the network switch. Its USB cable goes to the PowerEdge, and the PowerEdge shares the battery status with homelab over the network.
 
 ## Setup
 
@@ -26,4 +26,4 @@ Fix: `root:nut` ownership, `750` on the scripts, `640` on the token file. I veri
 
 ## Adding the homelab box (Oct 2026)
 
-At first only the PowerEdge was set up to shut down. The homelab box was on the same battery, but nothing told it the battery was low, so it would have lost power hard when the battery ran out. I switched NUT from `standalone` to `netserver` mode and added homelab as a secondary. I checked that the PowerEdge lists both machines as connected clients (`upsc -c`).
+At first only the PowerEdge was set up to shut down. The homelab box was on the same battery, but nothing told it the battery was low, so it would have lost power hard when the battery ran out. I switched NUT from `standalone` to `netserver` mode and added homelab as a secondary. I checked that the PowerEdge lists both machines as connected clients (`upsc -c`). The Cisco switch is on the UPS too. Without it, homelab would lose its connection to the PowerEdge the moment the power went out and would never get the shutdown signal.

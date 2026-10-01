@@ -10,7 +10,7 @@ This repo documents how it's built, how it's secured, and the problems I've run 
 |---|---|
 | Dell PowerEdge (Xeon E5-2620, 12 threads) | Proxmox VE hypervisor. 4 × 300 GB SAS drives in RAID 10 on a PERC H710P hardware RAID controller |
 | Small Debian box ("homelab") | NAS (NFS), reverse proxy, Jellyfin (uses the Intel iGPU for hardware transcoding). SSD boot drive, 4 TB data drive, separate 2 TB backup drive |
-| CyberPower CP1500 UPS | Battery backup for both servers. Monitored with NUT |
+| CyberPower CP1500 UPS | Battery backup for both servers and the switch. Monitored with NUT |
 | AT&T gateway → Cisco switch | Home network |
 
 ## Layout
