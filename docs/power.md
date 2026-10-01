@@ -1,10 +1,12 @@
 # Power protection (UPS)
 
-A CyberPower CP1500 UPS powers both servers: the PowerEdge and the homelab box. Its USB cable goes to the PowerEdge, so that's where it's monitored.
+A CyberPower CP1500 UPS powers both servers: the PowerEdge and the homelab box. Its USB cable goes to the PowerEdge, and the PowerEdge shares the battery status with homelab over the network.
 
 ## Setup
 
-- **NUT** (Network UPS Tools) runs on the Proxmox host in standalone mode with the `usbhid-ups` driver.
+- **NUT** (Network UPS Tools) runs on the Proxmox host as a **netserver** with the `usbhid-ups` driver. It listens on localhost and the LAN IP only.
+- The PowerEdge's `upsmon` is the **primary**. The homelab box runs `nut-client` as a **secondary**, with its own NUT user.
+- On critically low battery, the primary signals a forced shutdown (FSD). Homelab shuts itself down, and the PowerEdge waits for it to disconnect before shutting down its VMs and then itself.
 - `upsmon` watches the battery and runs two scripts:
 
 | Script | When | What it does |
@@ -22,6 +24,6 @@ The log showed `Permission denied` on the notify script. `upsmon` runs shutdown 
 
 Fix: `root:nut` ownership, `750` on the scripts, `640` on the token file. I verified with `runuser -u nut -- ups-notify.sh` and then a second real unplug test, which sent the alert.
 
-## Known gap
+## Adding the homelab box (Oct 2026)
 
-Right now only the PowerEdge shuts itself down on low battery. The homelab box gets battery power too, but nothing tells it to shut down, so it loses power hard when the battery runs out. The fix is to run it as a NUT client of the PowerEdge's NUT server.
+At first only the PowerEdge was set up to shut down. The homelab box was on the same battery, but nothing told it the battery was low, so it would have lost power hard when the battery ran out. I switched NUT from `standalone` to `netserver` mode and added homelab as a secondary. I checked that the PowerEdge lists both machines as connected clients (`upsc -c`).

@@ -4,8 +4,10 @@
 
 | Machine | Drives |
 |---|---|
-| PowerEdge | 4 × 300 GB SAS on a PERC H710P hardware RAID controller, presented to Proxmox as one ~558 GB volume (LVM) |
+| PowerEdge | 4 × 300 GB SAS in **RAID 10** on a PERC H710P hardware RAID controller, presented to Proxmox as one ~558 GB volume (LVM) |
 | homelab | 240 GB SSD (OS), 4 TB HDD (`/srv/data`), 2 TB HDD (`/srv/backup`) |
+
+RAID 10 mirrors pairs of drives and stripes across the pairs. It can lose one drive from each mirror and keep running, and it's faster than RAID 5/6 because it doesn't calculate parity. The tradeoff is that only half the raw space is usable (1.2 TB raw → ~558 GB).
 
 The homelab box doesn't use RAID. Its protection is the separate backup drive instead: if the data drive dies, the nightly snapshots are on a different physical disk.
 
