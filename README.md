@@ -8,10 +8,10 @@ This repo documents how it's built, how it's secured, and the problems I've run 
 
 | Machine | Role |
 |---|---|
-| Dell PowerEdge (Xeon E5-2620, 12 threads) | Proxmox VE hypervisor. Runs the VMs below |
-| Small Debian box ("homelab") | NAS (NFS), reverse proxy, Jellyfin (uses the Intel iGPU for hardware transcoding) |
-| CyberPower CP1500 UPS | Battery backup for the PowerEdge, monitored with NUT |
-| AT&T gateway → TP-Link switch → Cisco switch | Home network |
+| Dell PowerEdge (Xeon E5-2620, 12 threads) | Proxmox VE hypervisor. 4 × 300 GB SAS drives on a PERC H710P hardware RAID controller |
+| Small Debian box ("homelab") | NAS (NFS), reverse proxy, Jellyfin (uses the Intel iGPU for hardware transcoding). SSD boot drive, 4 TB data drive, separate 2 TB backup drive |
+| CyberPower CP1500 UPS | Battery backup for both servers. Monitored with NUT |
+| AT&T gateway → Cisco switch | Home network |
 
 ## Layout
 
@@ -20,7 +20,7 @@ This repo documents how it's built, how it's secured, and the problems I've run 
                             │
                      AT&T gateway  (no port forwards)
                             │
-                    Switches (LAN)
+                     Cisco switch
             ┌───────────────┴────────────────┐
             │                                │
    Dell PowerEdge (Proxmox)            homelab (Debian)
@@ -66,6 +66,6 @@ All apps run in Docker on the `docker` VM, one folder and one compose file per s
 
 Real problems from this lab, written as Problem → Troubleshooting → Fix → What I learned.
 
-1. [Nightly backups were silently failing for weeks](writeups/01-silent-backup-failure.md)
+1. [My nightly backup failed and nothing told me](writeups/01-silent-backup-failure.md) (Sept 2026)
 
 Secrets, real IP addresses, and domain names are removed from everything in this repo.
