@@ -1,6 +1,6 @@
 # Power protection (UPS)
 
-A CyberPower CP1500 UPS powers the PowerEdge and is connected to it over USB.
+A CyberPower CP1500 UPS powers both servers: the PowerEdge and the homelab box. Its USB cable goes to the PowerEdge, so that's where it's monitored.
 
 ## Setup
 
@@ -21,3 +21,7 @@ I tested it by unplugging the UPS. The "on battery" alert never arrived.
 The log showed `Permission denied` on the notify script. `upsmon` runs shutdown as root but drops to the `nut` user for normal notifications. My script and token file were root-only, so the alert failed silently.
 
 Fix: `root:nut` ownership, `750` on the scripts, `640` on the token file. I verified with `runuser -u nut -- ups-notify.sh` and then a second real unplug test, which sent the alert.
+
+## Known gap
+
+Right now only the PowerEdge shuts itself down on low battery. The homelab box gets battery power too, but nothing tells it to shut down, so it loses power hard when the battery runs out. The fix is to run it as a NUT client of the PowerEdge's NUT server.

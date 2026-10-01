@@ -2,7 +2,14 @@
 
 ## Storage
 
-The PowerEdge has a single disk, so large data stays on the homelab box's drives and is shared over **NFS**:
+| Machine | Drives |
+|---|---|
+| PowerEdge | 4 × 300 GB SAS on a PERC H710P hardware RAID controller, presented to Proxmox as one ~558 GB volume (LVM) |
+| homelab | 240 GB SSD (OS), 4 TB HDD (`/srv/data`), 2 TB HDD (`/srv/backup`) |
+
+The homelab box doesn't use RAID. Its protection is the separate backup drive instead: if the data drive dies, the nightly snapshots are on a different physical disk.
+
+The PowerEdge doesn't have room for the large data, so that stays on the homelab box's drives and is shared over **NFS**:
 
 | Export | Used for | Access |
 |---|---|---|
@@ -19,7 +26,7 @@ Two nightly jobs, one per host, each run by a **systemd timer**.
 
 | Host | What it backs up | Method |
 |---|---|---|
-| homelab | Jellyfin and Caddy config | stop → rsync → start |
+| homelab | Jellyfin and Caddy config, Nextcloud user files | stop → rsync → start |
 | docker VM | Nextcloud database, Nextcloud config, Vaultwarden, ntfy, Uptime Kuma | `mariadb-dump --single-transaction` (no downtime), stop → rsync → start for the SQLite apps |
 
 How the scripts work:
