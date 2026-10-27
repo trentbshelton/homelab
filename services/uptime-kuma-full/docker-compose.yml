@@ -9,6 +9,9 @@ services:
       TZ: ${TZ}
     volumes:
       - /opt/homelab/appdata/uptime-kuma:/app/data
+    networks:
+      - default
+      - calendar  # check baikal/agendav directly; they only listen on loopback
     ports:
       - "${TS_IP}:8083:3001"
     extra_hosts:
@@ -18,3 +21,8 @@ services:
       - "vault.home.${DOMAIN}:${PROXY_TS_IP}"
       - "cloud.home.${DOMAIN}:${PROXY_TS_IP}"
       - "music.home.${DOMAIN}:${PROXY_TS_IP}"
+
+networks:
+  calendar:
+    name: calendar_default
+    external: true
