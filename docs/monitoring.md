@@ -2,7 +2,9 @@
 
 ## Uptime Kuma
 
-One Uptime Kuma instance watches every user-facing service: Nextcloud, Vaultwarden, Navidrome, Jellyfin, the calendar, the reverse proxy, Proxmox, and the dashboard.
+One Uptime Kuma instance watches every user-facing service: Nextcloud, Vaultwarden, Navidrome, Jellyfin, Soulseek, Wallos, both calendar apps, the game server panel, the reverse proxy, Proxmox, the dashboard and its status service, the public album-cover endpoint Discord uses, and the SSH port of a friend's VM.
+
+- The calendar apps only listen on the VM's loopback, so Kuma joins their Docker network and checks them by container name.
 
 - HTTP(S) checks go through the real domain names, so a check fails if any part of the path breaks (DNS, Caddy, certificate, or the app itself).
 - Backup jobs use **push** monitors. The job pings Kuma when it finishes, and Kuma alerts when the pings stop.
