@@ -29,7 +29,7 @@ Two nightly jobs, one per host, each run by a **systemd timer**.
 | Host | What it backs up | Method |
 |---|---|---|
 | homelab | Jellyfin and Caddy config, Nextcloud user files | stop → rsync → start |
-| docker VM | Nextcloud database, Nextcloud config, Vaultwarden, ntfy, Uptime Kuma | `mariadb-dump --single-transaction` (no downtime), stop → rsync → start for the SQLite apps |
+| docker VM | Nextcloud database, Nextcloud config, Vaultwarden, Uptime Kuma | `mariadb-dump --single-transaction` (no downtime), stop → rsync → start for the SQLite apps |
 
 How the scripts work:
 

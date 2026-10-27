@@ -45,10 +45,7 @@ All apps run in Docker on the `docker` VM, one folder and one compose file per s
 | Baikal + AgenDAV | Self-hosted calendar that syncs to my phone (CalDAV) |
 | Wallos | Tracks subscriptions and sends renewal reminders |
 | Uptime Kuma | Monitors every service and sends alerts |
-| ntfy | Push notifications to my phone |
-| Portainer | Docker management UI |
 | Custom dashboard | Status page I built (Node.js) |
-| Network map | Live topology diagram I built (Node.js) |
 
 ## Docs
 

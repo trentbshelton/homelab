@@ -6,6 +6,7 @@
 # (rsync --link-dest, stop-for-consistency, verify, retention, Kuma
 # heartbeat), separate because this VM's appdata never used to exist: it only
 # came into being when Nextcloud/Vaultwarden/ntfy/Uptime Kuma moved here
+# (ntfy has since been retired)
 # during the 2026-09 rebuild, and nothing was ever written to back them up.
 #
 # WHY EACH THING IS HANDLED THE WAY IT IS:
@@ -16,10 +17,11 @@
 #    the app keeps running. This is the exact method already proven for this
 #    database during its original migration onto this VM.
 #
-#  * Vaultwarden, ntfy, and the comprehensive Uptime Kuma all keep state in
+#  * Vaultwarden and the comprehensive Uptime Kuma both keep state in
 #    SQLite. Copying a live SQLite file yields a torn copy that looks fine and
 #    restores as corruption -- same reasoning as homelab's Jellyfin backup.
-#    All three get stopped together, copied, and restarted together -- they
+#    (ntfy was a third until it was retired for Pushover on 2026-10-26.)
+#    Both get stopped together, copied, and restarted together -- they
 #    have no startup ordering dependency on each other, unlike Nextcloud/DB/
 #    Redis, so there is no reason to do them one at a time.
 #
@@ -29,7 +31,7 @@
 #    few seconds of Nextcloud downtime for the sake of it is not worth it.
 #
 #  * The NFS destination (/srv/backup on homelab) squashes every write from
-#    this host to uid 1000 -- see /etc/exports on homelab, this
+#    this host to uid 1000 (yotsuba) -- see /etc/exports on homelab, this
 #    export is scoped `all_squash,anonuid=1000,anongid=1000` specifically so
 #    this script (which must run as root, same reason as homelab's: it has to
 #    read files owned by whatever uid each container runs as) never has to
@@ -46,8 +48,8 @@ STAMP=$(date +%Y-%m-%d_%H%M%S)
 TARGET="$DEST/$STAMP"
 LATEST="$DEST/latest"
 
-STOPPED=(vaultwarden ntfy uptime-kuma-homelab)
-STOPPED_SRC=(/opt/homelab/appdata/vaultwarden /opt/homelab/appdata/ntfy /opt/homelab/appdata/uptime-kuma)
+STOPPED=(vaultwarden uptime-kuma-homelab)
+STOPPED_SRC=(/opt/homelab/appdata/vaultwarden /opt/homelab/appdata/uptime-kuma)
 
 LIVE_NAME=nextcloud-html
 LIVE_SRC=/opt/nextcloud/html
