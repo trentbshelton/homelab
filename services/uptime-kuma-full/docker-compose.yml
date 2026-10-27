@@ -18,4 +18,3 @@ services:
       - "vault.home.${DOMAIN}:${PROXY_TS_IP}"
       - "cloud.home.${DOMAIN}:${PROXY_TS_IP}"
       - "music.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "ntfy.home.${DOMAIN}:${PROXY_TS_IP}"
