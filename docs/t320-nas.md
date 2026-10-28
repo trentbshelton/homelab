@@ -54,11 +54,53 @@ turns it into a plain HBA. That is the next step, done before any drives
 go in.
 
 iDRAC is set to a static address on the LAN so the server can be power
-cycled remotely.
+cycled remotely. This one only has the iDRAC7 Basic license, so there's no
+web UI or SSH, just IPMI. IPMI over LAN didn't work at first because the
+"Enable IPMI Over LAN" change never got saved. You have to leave System
+Setup through Finish and say Yes to saving. After that, `ipmitool` could
+power cycle it and read temps and fans.
 
 ## Step 2: Flash the H310 to IT mode
 
-TODO
+I followed Fohdeesha's PERC crossflashing guide (H310 Full Size section).
+The guide ships two live images, FreeDOS and Debian. I put both on one USB
+stick with Ventoy.
+
+Prep, per the guide:
+- Disabled Virtualization Technology, SR-IOV and I/OAT DMA in the BIOS
+- Kept boot mode on BIOS, not UEFI
+- No drives connected to the card
+
+In FreeDOS, `info` confirmed a PERC H310 Adapter, chip revision B2. I wrote
+down the card's SAS address there, because the flash wipes it. Then
+`310FLCRS` erased the Dell firmware (twice, to be sure) and wrote the IT
+mode SBR:
+
+![310FLCRS finishing with no errors](images/t320/06-h310-310flcrs-success.jpg)
+
+Next I booted the Debian image. It has SSH, so I ran the rest from another
+machine. The `H310` script boots the card from RAM, then flashes LSI's
+9211-8i IT firmware (20.00.07.00) to the card's flash and verifies it.
+After one reboot, `setsas` put the original SAS address back, and `info`
+then showed:
+
+```
+Firmware Product ID : 0x2213 (IT)
+Firmware Version    : 20.00.07.00
+Board Name          : SAS9211-8i
+BIOS Version        : N/A
+```
+
+I skipped the boot ROM. Nothing boots from this card, since the boot SSD
+goes on the onboard SATA port, and without the ROM the card adds no time
+to POST.
+
+Annoyances:
+- The F11 boot menu froze the first time after a cold boot. Setting a
+  one-time boot with `ipmitool chassis bootdev disk` and resetting was
+  more reliable.
+- After a warm reboot the BIOS often didn't see the USB stick at all.
+  A full power off and on through IPMI fixed it every time.
 
 ## Step 3: Boot SSD and TrueNAS install
 
