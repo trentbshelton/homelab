@@ -1,0 +1,31 @@
+# Caddy -- reverse proxy + TLS for every *.home.<domain> name, plus the public
+# covers.<domain> route. Moved here from homelab /srv/compose on 2026-10-31.
+#
+# Public DNS points *.home.<domain> at this VM's Tailscale IP (not routable
+# from the internet), so 80/443 are bound to ${TS_IP} only and TLS uses
+# DNS-01 via Cloudflare (see caddy/Dockerfile).
+#
+# 127.0.0.1:443 is for cloudflared (systemd, same host), which carries
+# covers.<domain> through the Cloudflare Tunnel. Nothing else reaches it.
+services:
+  caddy:
+    build:
+      context: ./caddy
+    image: homelab-caddy:2.11.4
+    container_name: caddy
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Private keys + issued certs. Copied from homelab, so no re-issue.
+      - ./data:/data
+      - ./config:/config
+    ports:
+      - "${TS_IP}:80:80"
+      - "${TS_IP}:443:443"
+      - "127.0.0.1:443:443"

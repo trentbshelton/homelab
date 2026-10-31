@@ -15,12 +15,12 @@ services:
     ports:
       - "${TS_IP}:8083:3001"
     extra_hosts:
-      - "status.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "jellyfin.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "homepage.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "vault.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "cloud.home.${DOMAIN}:${PROXY_TS_IP}"
-      - "music.home.${DOMAIN}:${PROXY_TS_IP}"
+      - "status.home.${DOMAIN}:${TS_IP}"
+      - "jellyfin.home.${DOMAIN}:${TS_IP}"
+      - "homepage.home.${DOMAIN}:${TS_IP}"
+      - "vault.home.${DOMAIN}:${TS_IP}"
+      - "cloud.home.${DOMAIN}:${TS_IP}"
+      - "music.home.${DOMAIN}:${TS_IP}"
 
 networks:
   calendar:

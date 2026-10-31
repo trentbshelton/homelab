@@ -17,15 +17,17 @@ ports:
 
 That way a service can't be reached from the home LAN or any other interface by accident. During an audit I found four containers published on `0.0.0.0` and fixed them.
 
-**Subnet router on a separate box.** The homelab box advertises the home LAN (`192.168.1.0/24`) to the tailnet. That lets me reach devices that can't run Tailscale, like the PowerEdge's iDRAC (remote management card). I put the subnet router on the homelab box instead of a VM on the PowerEdge on purpose: if the PowerEdge is down, I still need a way in to fix it.
+**Subnet router.** One machine advertises the home LAN (`192.168.1.0/24`) to the tailnet. That lets me reach devices that can't run Tailscale, like the iDRACs (remote management cards) and the TrueNAS web UI.
 
-**HTTPS with a real certificate.** Caddy runs on the homelab box as a reverse proxy. It gets a wildcard certificate (`*.home.<domain>`) from Let's Encrypt with a DNS-01 challenge through Cloudflare. The Cloudflare API token is scoped to DNS edit on that one zone only. Public DNS points the wildcard at a Tailscale IP, so the names resolve anywhere, but only tailnet devices can connect.
+This used to run on the old homelab box, on purpose: it was separate from the PowerEdge, so if the PowerEdge went down I still had a way in to fix it. When I retired that box (Oct 2026), the route moved to the Docker VM. That works, but the Docker VM runs on the PowerEdge, so a dead PowerEdge also takes out remote access to its own iDRAC. The plan is to move the route to the OptiPlex 3040 once it's set up.
+
+**HTTPS with a real certificate.** Caddy runs on the Docker VM as a reverse proxy ([config](../services/caddy/)). It used to run on the old homelab box, and turning that box off took every site down with it, so it now lives next to the apps. It gets a wildcard certificate (`*.home.<domain>`) from Let's Encrypt with a DNS-01 challenge through Cloudflare. The Cloudflare API token is scoped to DNS edit on that one zone only. Public DNS points the wildcard at a Tailscale IP, so the names resolve anywhere, but only tailnet devices can connect.
 
 ## Deliberate exceptions
 
 | What | Why | How it's limited |
 |---|---|---|
-| Album art for Discord | Discord's servers have to fetch the image from the internet | Cloudflare Tunnel (outbound-only connection, no open port) to one hostname |
+| Album art for Discord | Discord's servers have to fetch the image from the internet | Cloudflare Tunnel (outbound-only connection, no open port) to one hostname. `cloudflared` runs on the Docker VM and hands traffic to Caddy on `127.0.0.1` ([config](../services/cloudflared/)) |
 | Game server VM | Friends without Tailscale need to join | Kept off the tailnet and on its own VM, so it's isolated from everything else |
 
 ## Things I checked during an exposure audit

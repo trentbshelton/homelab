@@ -207,6 +207,30 @@ long test anyway, I made a disabled cron job in TrueNAS that runs
 `smartctl` and trigger it by hand. The long test on 8TB takes 16-18 hours.
 The main pool gets built once it passes.
 
+It passed with no errors, and the main pool `data` went onto the 8TB as a
+single disk for now.
+
+### A second 8TB instead of the 4TB
+
+Mirroring the 8TB with the old 4TB would have capped the pool at 3.6TB. I
+found another seller with a stack of enterprise Toshiba 8TB drives for $120
+each, so I bought one to mirror the 8TB properly.
+
+The drive I got wasn't the one in the listing. It was an MG05ACA800E (one
+generation older) instead of the MG06 in the photos, with about 71,500
+power-on hours (over 8 years). The SMART data was still clean, so I kept
+it. It's a mirror, so if this drive dies early the WD keeps everything
+running while I replace it.
+
+It passed a long SMART test (about 12 hours at 7200rpm), and then I
+attached it to `data` as a mirror. The resilver (ZFS copying everything
+onto the new disk) took a little over 2 hours with 0 errors.
+
+| Pool | Drives | Layout | Job |
+|---|---|---|---|
+| `data` | WD 8TB + Toshiba 8TB | Mirror | Everything (NFS to the Docker VM) |
+| `backup` | Seagate 2TB | Single disk | Nightly app backups |
+
 ## Step 5: Moving the data over
 
 Before pulling the 2TB out of the old box, I paused everything that wrote
@@ -259,10 +283,141 @@ a file I had deleted while replacing ntfy with Pushover. The backup itself
 was still running fine. I moved the token to the file the other scripts
 use.
 
+### Copying onto the main pool
+
+Once `data` existed, the copy from `backup/staging` ran locally on the
+T320, with no network involved. I split `data` into child datasets that
+matched the old folders (`media`, `downloads`, `nextcloud-data`,
+`backups`) so each could have its own snapshot settings.
+
+The first copy finished with rsync exit code 23 ("some files could not be
+transferred"). All 1,033 errors were in `media/`. Those files are hard
+links into `downloads/`: the same file on disk shows up in both folders,
+so a movie takes up space once instead of twice. A hard link can't cross
+filesystems, and in ZFS every dataset is its own filesystem, so rsync
+couldn't link `media/` to `downloads/` anymore.
+
+I deleted the `media` and `downloads` datasets, made them plain folders in
+the `data` root so they share one filesystem again, and copied them again.
+The second copy finished cleanly, and a dry-run rsync afterwards found 0
+differences. Both sides had the same 1,033 hard links.
+
 ## Step 6: Switching services over and retiring the old box
 
-TODO
+### Cutover
+
+Downtime was about 27 minutes:
+
+1. Stopped the apps that write to the data
+2. Ran a final `rsync -aHAX --delete` from the old box to the T320. A dry
+   run first showed only what had changed since the copy.
+3. Added NFS shares on the T320 for `/mnt/data`, `/mnt/data/nextcloud-data`
+   and `/mnt/data/backups`. With NFSv3, each child dataset needs its own
+   share, because it's a separate filesystem.
+4. Changed `/etc/fstab` on the Docker VM and the old box to mount the T320
+   instead of the old box. The old lines are commented out, not deleted.
+5. Started everything again and opened real files to check they worked
+
+The apps never noticed. They still use the same paths (`/mnt/nas/data`),
+just from a different server.
+
+I added two Uptime Kuma monitors for the T320 (web UI and the NFS port).
+TrueNAS has no built-in Pushover alerts, so a small script on the T320
+runs every 10 minutes and sends a push if a pool isn't healthy, a SMART
+check fails, the reallocated sector count goes up, or a drive gets too hot.
+
+### Turning off the old box broke every website
+
+With the data moved, I shut down the old box to pull its 4TB. Every
+`*.home.<domain>` site stopped loading, even though the apps were all
+running on the Docker VM.
+
+The reason was the reverse proxy. Caddy still ran on the old box, and the
+wildcard DNS record pointed at the old box's Tailscale IP. The apps were
+fine, but the only way to reach them by name went through a machine that
+was off. The Cloudflare Tunnel for the public album art ran there too.
+
+The original plan was to move Caddy to the OptiPlex along with Jellyfin. I
+moved it to the Docker VM instead. Caddy holds no data and only routes
+traffic, so it belongs on the machine that's always on.
+
+1. Copied the Caddyfile and Caddy's `/data` folder (certificates and the
+   Let's Encrypt account) to the Docker VM, so no certificates had to be
+   issued again
+2. Built the same Caddy image there (with the Cloudflare DNS plugin) and
+   tested every hostname with `curl --resolve` against the new IP while
+   the old Caddy was still serving traffic
+3. Moved `cloudflared` to the Docker VM. It now hands traffic to Caddy on
+   `127.0.0.1` instead of the LAN IP, because the VM's LAN IP comes from
+   DHCP.
+4. Changed the wildcard DNS record to the Docker VM's Tailscale IP
+5. Removed Caddy from the old box's compose file
+
+One thing I missed: Uptime Kuma had `extra_hosts` entries pinning some
+hostnames to the old proxy's IP, so a few checks were still going to the
+old box. I found it while writing this log and pointed them at the new
+proxy.
+
+The DNS record has a 5-minute TTL, so for a few minutes after the change
+some devices still had the old IP cached and couldn't load some sites.
+
+### Moving the 4TB over
+
+Before shutting the old box down for good, I saved everything on it that
+might matter later to the T320: the compose folder and `.env`, `/etc`,
+`/root`, `/home`, `/opt`, crontabs, and all the app data. My first archive
+missed `/home`, which had a couple of old admin password files. I noticed
+them, so they're in a second archive.
+
+Before wiping the 4TB, I mounted it read-only one last time and compared
+it file by file against the T320 with `rsync -n`. All 789,345 files were
+on the T320. The only difference was Nextcloud's log file, which had kept
+growing on the T320 since the cutover.
+
+I also had to move these off the old box:
+
+- **Tailscale subnet router** (how I reach the iDRACs and the TrueNAS UI
+  from outside the house). It's on the Docker VM for now, but that VM runs
+  on the PowerEdge, so if the PowerEdge goes down I can't reach its iDRAC
+  remotely. It should move to the OptiPlex.
+- **Dashboard:** removed the old box from the status service, so it
+  doesn't show as down or send an alert
+
+The 4TB went into the T320's fourth bay and became a third pool,
+`replica`, with a full copy of `data`:
+
+- Snapshots of `data` (and its child datasets) every night at 3:30, kept
+  for 14 days
+- A local ZFS replication task copies each new snapshot to `replica`,
+  which keeps 30 days
+
+The mirror protects against a dead drive, but it doesn't protect against
+deleting something by mistake or files getting corrupted, because those
+happen on both drives at once. Snapshots on a separate pool cover that.
+
+| Pool | Drives | Job |
+|---|---|---|
+| `data` | 8TB + 8TB mirror | All data, shared over NFS |
+| `replica` | WD 4TB | Nightly copy of `data`, 30 days of history |
+| `backup` | Seagate 2TB | Nightly app backups (databases, configs) |
+
+Jellyfin is off for now. It moves to the OptiPlex 3040 with its saved
+config, and the OptiPlex will also run the homelab console on the CRT.
 
 ## What I learned
 
-TODO
+- **Check what a machine does before turning it off, not just what's
+  stored on it.** I checked the data drives carefully and forgot that the
+  old box was also the reverse proxy, the tunnel and the subnet router.
+- **Put stateless routing on the machine that's always on.** Caddy doesn't
+  store anything, so putting it on the Docker VM next to the apps means
+  one less box that can take every site down.
+- **Hard links don't cross ZFS datasets.** Plan datasets around how files
+  link to each other, not just around folder names.
+- **Verify before wiping, every time.** A dry-run rsync between the old
+  drive and the new copy takes a few minutes and proves nothing is
+  missing.
+- **A mirror isn't a backup.** It covers a dead drive. Snapshots on a
+  separate pool cover mistakes.
+- **When archiving a machine, take more than the service folders.**
+  `/home`, `/opt` and crontabs are small and easy to forget.

@@ -1,0 +1,176 @@
+# Caddy — the front door for every *.home.<domain> name. Everything below is
+# bound to the Tailscale address only and unreachable from the internet, with
+# ONE deliberate exception: the covers.<domain> block at the bottom, carried
+# by a Cloudflare Tunnel specifically so Discord's bot can fetch Navidrome
+# cover art for Feishin's rich presence. See that block for exactly what's exposed and why
+# it's scoped the way it is.
+# No global `email` here on purpose. Let's Encrypt treats the ACME account
+# email as optional, and an empty {$ACME_EMAIL} expands to a bare `email`
+# token that Caddy refuses to parse -- it crash-loops before ever trying ACME.
+# Set ACME_EMAIL in .env and add it back to get expiry warnings at 20 days.
+
+# One wildcard cert for everything. Requesting *.home.<domain> once is far
+# kinder to rate limits than a separate cert per service, and adding a new
+# service later needs no new certificate at all.
+*.home.{$DOMAIN} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# Ask Cloudflare's resolver directly. The default is the host's
+		# resolver, which on a tailnet can answer from MagicDNS and make
+		# the self-check fail even though the record propagated fine.
+		resolvers 1.1.1.1 1.0.0.1
+	}
+
+	# Services are matched by hostname. One at a time, so that when something
+	# breaks the cause is obvious.
+	@jellyfin host jellyfin.home.{$DOMAIN}
+	handle @jellyfin {
+		# Jellyfin still runs on homelab (moves to the OptiPlex later).
+		reverse_proxy <jellyfin-host-ip>:8096
+	}
+
+	# Homepage route REMOVED 2026-09-13 -- app decommissioned, replaced by
+	# the selfhosted-dashboard project. See docker-compose.yml for why.
+
+	# sonarr/radarr/prowlarr/qbittorrent routes REMOVED 2026-09-12 along with
+	# the containers -- see docker-compose.yml for why.
+
+	# Vaultwarden. Note this is the ONLY service here holding data that cannot
+	# be re-created, so treat changes to this block with suspicion.
+	@vault host vault.home.{$DOMAIN}
+	handle @vault {
+		reverse_proxy {$TS_IP}:8081
+	}
+
+	# Nextcloud. The .well-known redirects are required by the desktop and
+	# mobile sync clients; without them discovery fails with vague errors.
+	@cloud host cloud.home.{$DOMAIN}
+	handle @cloud {
+		redir /.well-known/carddav /remote.php/dav 301
+		redir /.well-known/caldav  /remote.php/dav 301
+		reverse_proxy {$TS_IP}:8084
+	}
+
+	# Navidrome. Subsonic API lives under the same host, so mobile clients
+	# (Symfonium, substreamer) work against this name with no extra route.
+	@music host music.home.{$DOMAIN}
+	handle @music {
+		reverse_proxy {$TS_IP}:4533
+	}
+
+	# Uptime Kuma. Monitors every other name in this file by fetching it
+	# through here, so this route is also the thing being measured: if
+	# Caddy is down, the status page is down, which is honest.
+	@status host status.home.{$DOMAIN}
+	handle @status {
+		reverse_proxy {$TS_IP}:8083
+	}
+
+	# Dashboard. The custom selfhosted-dashboard project -- status overview
+	# and clickable links for everything else in this file.
+	@dashboard host dashboard.home.{$DOMAIN}
+	handle @dashboard {
+		reverse_proxy {$TS_IP}:8080
+	}
+
+	# Claude Code Web UI (claudecodeui). Runs on the claude-code LXC, not the
+	# docker VM, so it gets its own IP here instead of ${TS_IP}.
+	@claude host claude.home.{$DOMAIN}
+	handle @claude {
+		reverse_proxy <claude-lxc-ts-ip>:3001
+	}
+
+	# Proxmox's own web UI ships with a self-signed cert. Fronting it here
+	# like Portainer gets rid of the browser warning; Proxmox itself stays
+	# on its Tailscale IP only, same as everything else.
+	@pve host pve.home.{$DOMAIN}
+	handle @pve {
+		reverse_proxy https://<pve-ts-ip>:8006 {
+			transport http {
+				tls_insecure_skip_verify
+			}
+		}
+	}
+
+	# slskd (Soulseek) -- all its P2P traffic routes through a ProtonVPN
+	# tunnel via gluetun on the docker VM, never touching the home WAN IP
+	# directly. This route is just for the web UI.
+	@soulseek host soulseek.home.{$DOMAIN}
+	handle @soulseek {
+		reverse_proxy {$TS_IP}:8086
+	}
+
+	# Wallos (subscription tracker) -- also serves an iCal feed of upcoming charges
+	@subs host subs.home.{$DOMAIN}
+	handle @subs {
+		reverse_proxy {$TS_IP}:8087
+	}
+
+	# AMP game-server panel on the Game-Servers VM. That VM is deliberately off
+	# the tailnet, so this proxies to its LAN IP -- the panel itself is still
+	# only reachable through this Tailscale-bound Caddy, not from the internet.
+	@games host games.home.{$DOMAIN}
+	handle @games {
+		reverse_proxy <game-vm-lan-ip>:8080
+	}
+
+	# requests route REMOVED 2026-09-12 along with the Seerr container -- see
+	# docker-compose.yml for why.
+
+	# slskd route REMOVED 2026-09-12 along with the container -- see
+	# docker-compose.yml for why.
+
+	# Anything else under the wildcard is not a typo'd service, it is nothing.
+	handle {
+		respond "no such service on this host" 404
+	}
+}
+
+# --- The one deliberate public exception ----------------------------------
+#
+# MOVED 2026-10-31: Caddy + cloudflared now run on the docker VM (homelab
+# being retired); cloudflared hands off to 127.0.0.1:443 on this box.
+#
+# STATUS as of 2026-09-14: live, via a Cloudflare Tunnel (cloudflared runs on
+# this box, systemd service, outbound-only) rather than a router port-forward
+# -- AT&T turned out to be blocking all unsolicited inbound on this line at
+# the network level (confirmed with six different external ports and a full
+# support call including a supervisor, nothing fixable from this router's
+# UI). The Tunnel sidesteps that entirely since it never needs an inbound
+# connection. This does NOT fix the same block for the game server's future
+# port-forward, though -- that's raw TCP/UDP, not HTTP, so the Tunnel trick
+# doesn't transfer. See project memory if that comes up.
+#
+# Feishin's Discord rich presence needs Discord's own bot to fetch cover art
+# images directly, which means *something* has to be reachable from the
+# public internet.
+#
+#  * Lives on a plain (not .home.) subdomain, since it's genuinely public --
+#    home.<domain> is reserved for tailnet-only services, this isn't one.
+#
+#  * Reached by cloudflared on 127.0.0.1:443 (see docker-compose.yml).
+#    cloudflared runs on the host as a systemd service, not in Caddy's
+#    container. Loopback rather than the LAN IP, because this VM's LAN IP
+#    comes from DHCP and can change.
+#
+#  * PROXIES THE WHOLE NAVIDROME API, not just cover art. This was
+#    deliberately narrower at first (only /rest/getCoverArt, everything else
+#    404'd) specifically because Navidrome's Subsonic auth token
+#    (?u=...&t=...&s=...) is long-lived, not per-request -- a leaked URL
+#    could otherwise be replayed for streaming/search/everything, not just
+#    art. Widened on 2026-09-14 because Feishin has no separate "public-only"
+#    URL setting -- it uses the ONE configured server address for both its
+#    own connection and for whatever it hands Discord, so a cover-art-only
+#    proxy can never actually get used by Feishin as designed. Trent chose to
+#    accept the wider exposure rather than lose the Discord art feature.
+#    Mitigate by rotating the Navidrome password if this URL/token ever
+#    leaks. Longer-term fix on the table but not done: give Navidrome its own
+#    dedicated VM so a compromise here can't reach anything else.
+covers.{$DOMAIN} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1 1.0.0.1
+	}
+
+	reverse_proxy {$TS_IP}:4533
+}

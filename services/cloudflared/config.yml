@@ -1,0 +1,11 @@
+# Moved from homelab 2026-10-31. Caddy runs on this host (docker,
+# /opt/services/caddy) with a loopback-only :443 just for this tunnel.
+tunnel: <tunnel-id>
+credentials-file: /root/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: covers.<domain>
+    service: https://127.0.0.1:443
+    originRequest:
+      originServerName: covers.<domain>
+  - service: http_status:404

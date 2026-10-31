@@ -2,11 +2,12 @@
 
 ## Uptime Kuma
 
-One Uptime Kuma instance watches every user-facing service: Nextcloud, Vaultwarden, Navidrome, Jellyfin, Soulseek, Wallos, both calendar apps, the game server panel, the reverse proxy, Proxmox, the dashboard and its status service, the public album-cover endpoint Discord uses, and the SSH port of a friend's VM.
+One Uptime Kuma instance watches every user-facing service: Nextcloud, Vaultwarden, Navidrome, Jellyfin, Soulseek, Wallos, both calendar apps, the game server panel, the reverse proxy, Proxmox, the dashboard and its status service, the public album-cover endpoint Discord uses, the SSH port of a friend's VM, and the T320 NAS (web UI and NFS port).
 
 - The calendar apps only listen on the VM's loopback, so Kuma joins their Docker network and checks them by container name.
 
 - HTTP(S) checks go through the real domain names, so a check fails if any part of the path breaks (DNS, Caddy, certificate, or the app itself).
+- Some hostnames are pinned to the reverse proxy's IP with `extra_hosts` in Kuma's compose file. When I moved Caddy to a different machine, I forgot these, and a few checks kept going to the old one. If the proxy moves again, update them too.
 - Backup jobs use **push** monitors. The job pings Kuma when it finishes, and Kuma alerts when the pings stop.
 
 Lesson learned: on a push monitor, the interval means "how long silence is allowed," not how often to check. I first copied `60` seconds from another monitor, and it flagged a perfectly healthy daily backup as down a minute later. It's now 26 hours.
@@ -21,6 +22,8 @@ Every alert reaches my phone through [Pushover](https://pushover.net). Each mach
 - The dashboard's status service, when a problem lasts 2+ minutes and again when it clears
 
 Uptime Kuma (service down / back up) and Wallos (subscription renewals) use their built-in Pushover support.
+
+TrueNAS has no Pushover option, so the T320 runs a small health script every 10 minutes from its own cron. It sends a push when a pool isn't healthy, a SMART check fails, a drive's reallocated sector count goes up, there are pending or uncorrectable sectors, or a drive is over 55°C. It only alerts when something changes, sends a reminder every 24 hours while a problem is still there, and sends a message when it clears.
 
 I used to self-host ntfy for this. I replaced it because the notifier ran on the same servers it was watching: if they went down, so did the alerts. Pushover is hosted elsewhere, and with one `notify` command, changing providers again would mean editing one file.
 

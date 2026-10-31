@@ -4,8 +4,9 @@ The real compose files from the `docker` VM. Each service lives in `/opt/service
 
 Changes made for this repo:
 
-- `${TS_IP}` replaces the VM's Tailscale IP, and `${PROXY_TS_IP}` replaces the reverse proxy's.
+- `${TS_IP}` replaces the VM's Tailscale IP (written `{$TS_IP}` in the Caddyfile). The reverse proxy runs on the same VM, so it's the same address. Other machines are `<placeholders>`.
 - `<tailnet>` replaces my Tailscale network name.
+- The Cloudflare Tunnel ID and credentials file aren't included.
 - `.env` files aren't included. Passwords and tokens are only ever referenced as `${VARIABLES}`.
 
 Patterns used throughout:
