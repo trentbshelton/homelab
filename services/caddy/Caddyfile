@@ -25,8 +25,8 @@
 	# breaks the cause is obvious.
 	@jellyfin host jellyfin.home.{$DOMAIN}
 	handle @jellyfin {
-		# Jellyfin still runs on homelab (moves to the OptiPlex later).
-		reverse_proxy <jellyfin-host-ip>:8096
+		# Jellyfin runs on the OptiPlex 3040 (console) since 2026-10-31.
+		reverse_proxy <optiplex-ts-ip>:8096
 	}
 
 	# Homepage route REMOVED 2026-09-13 -- app decommissioned, replaced by
@@ -74,7 +74,7 @@
 	}
 
 	# Claude Code Web UI (claudecodeui). Runs on the claude-code LXC, not the
-	# docker VM, so it gets its own IP here instead of ${TS_IP}.
+	# docker VM, so it gets its own IP here instead of {$TS_IP}.
 	@claude host claude.home.{$DOMAIN}
 	handle @claude {
 		reverse_proxy <claude-lxc-ts-ip>:3001

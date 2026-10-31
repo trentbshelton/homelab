@@ -19,8 +19,8 @@ The PowerEdge doesn't have room for the large data, so that lives on the T320 an
 
 | NFS share | Used for | Access |
 |---|---|---|
-| `/mnt/data` (+ `nextcloud-data`, `backups` child datasets) | Everything the apps read and write | read/write, docker VM only |
-| `/mnt/backup/nightly` | Backup snapshots | read/write, docker VM only |
+| `/mnt/data` (+ `nextcloud-data`, `backups` child datasets) | Everything the apps read and write | read/write, docker VM (and the OptiPlex for Jellyfin's media) |
+| `/mnt/backup/nightly` | Backup snapshots | read/write, docker VM and OptiPlex |
 
 The docker VM mounts them in `/etc/fstab` with `_netdev`, so they wait for the network at boot. The mount paths (`/mnt/nas/...`) stayed the same when the data moved from the old homelab box to the T320, so no app config had to change.
 

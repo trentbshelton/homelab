@@ -401,8 +401,25 @@ happen on both drives at once. Snapshots on a separate pool cover that.
 | `replica` | WD 4TB | Nightly copy of `data`, 30 days of history |
 | `backup` | Seagate 2TB | Nightly app backups (databases, configs) |
 
-Jellyfin is off for now. It moves to the OptiPlex 3040 with its saved
-config, and the OptiPlex will also run the homelab console on the CRT.
+### Jellyfin on the OptiPlex
+
+Jellyfin was the last thing that needed a new home. The same day, I put
+Debian 13 on the OptiPlex 3040 (no desktop, SSH only), added it to
+Tailscale, and restored Jellyfin's config from the archive on the T320. It
+kept the same server ID, so the apps on my devices didn't need setting up
+again. The OptiPlex has the same Intel iGPU as the old box, so hardware
+transcoding works the same way.
+
+One problem: the first start showed empty libraries. The NFS mount for the
+media used `x-systemd.automount`, which only mounts the share the first
+time something touches the folder. Docker had already set up the
+container's bind mount before that happened, so the container saw an empty
+folder. I stopped Jellyfin before it scanned anything, changed the mount to
+a normal one that has to be ready before Docker starts
+(`x-systemd.before=docker.service`), and it came up with everything there.
+
+The last step was pointing Caddy's Jellyfin route at the OptiPlex. The
+OptiPlex will also run the homelab console on the CRT.
 
 ## What I learned
 

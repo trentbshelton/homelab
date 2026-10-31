@@ -10,6 +10,7 @@ This repo documents how it's built, how it's secured, and the problems I've run 
 |---|---|
 | Dell PowerEdge (Xeon E5-2620, 12 threads) | Proxmox VE hypervisor. 4 × 300 GB SAS drives in RAID 10 on a PERC H710P hardware RAID controller |
 | Dell PowerEdge T320 (Xeon E5-2430L v2) | NAS running TrueNAS SCALE. ZFS mirror of 2 × 8 TB for data, a 4 TB pool with a nightly copy of it, and a 2 TB pool for app backups. See the [build log](docs/t320-nas.md) |
+| Dell OptiPlex 3040 (i3-6100T) | Debian 13. Runs Jellyfin (uses the Intel iGPU for hardware transcoding) and will drive the CRT homelab console |
 | CyberPower CP1500 UPS | Battery backup for the servers and the switch. Monitored with NUT |
 | AT&T gateway → Cisco switch | Home network |
 
@@ -36,14 +37,14 @@ Everything is reached over **Tailscale** (a WireGuard VPN). Nothing on the home 
 
 ## Services
 
-All apps run in Docker on the `docker` VM, one folder and one compose file per service. Their large data lives on the T320 over NFS.
+All apps except Jellyfin run in Docker on the `docker` VM, one folder and one compose file per service. Their large data lives on the T320 over NFS.
 
 | Service | What it does |
 |---|---|
 | Nextcloud (+ MariaDB, Redis) | File storage and sharing for 4 users |
 | Vaultwarden | Password manager (Bitwarden-compatible) |
 | Navidrome | Music streaming |
-| Jellyfin | Movies and TV. Offline while it moves to an OptiPlex 3040 for Intel Quick Sync |
+| Jellyfin | Movies and TV. Runs on the OptiPlex 3040 for Intel Quick Sync (hardware transcoding) |
 | Baikal + AgenDAV | Self-hosted calendar that syncs to my phone (CalDAV) |
 | Wallos | Tracks subscriptions and sends renewal reminders |
 | Uptime Kuma | Monitors every service and sends alerts |
