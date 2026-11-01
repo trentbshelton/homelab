@@ -92,6 +92,20 @@
 		}
 	}
 
+	# TrueNAS on the T320 (added 2026-10-31). Same idea as Proxmox above: its
+	# web UI has a self-signed cert, so Caddy fronts it with the real one.
+	# The box is LAN-only (no Tailscale on the appliance), hence the LAN IP.
+	@nas host nas.home.{$DOMAIN}
+	handle @nas {
+		# TrueNAS answers / with a redirect to its own IP, so send / to /ui/ here.
+		redir / /ui/
+		reverse_proxy https://<truenas-lan-ip> {
+			transport http {
+				tls_insecure_skip_verify
+			}
+		}
+	}
+
 	# slskd (Soulseek) -- all its P2P traffic routes through a ProtonVPN
 	# tunnel via gluetun on the docker VM, never touching the home WAN IP
 	# directly. This route is just for the web UI.
