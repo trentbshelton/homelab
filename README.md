@@ -65,7 +65,7 @@ All apps except Jellyfin run in Docker on the `docker` VM, one folder and one co
 
 ## Write-ups
 
-Real problems from this lab, written as Problem → Troubleshooting → Fix → What I learned.
+Real problems from this lab, written as Problem → Troubleshooting → Fix → What I learned. On the harder ones I used AI for some guidance, and each write-up says where.
 
 1. [My nightly backup failed and nothing told me](writeups/01-silent-backup-failure.md) (Sept 2026)
 

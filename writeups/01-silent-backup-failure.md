@@ -8,6 +8,8 @@ The day after the move, I was looking at my dashboard and wondered what the "nig
 
 ## Troubleshooting
 
+> I used an AI assistant for guidance while troubleshooting this, mainly to suggest what to check next and to explain errors I hadn't seen before.
+
 **1. Check the job itself.**
 
 ```
